@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from fastmcp import FastMCP
 from mcp_server.tools.academic_search import search_papers
 from mcp_server.tools.bibtex_fetcher import get_bibtex_by_doi, clean_bibtex
