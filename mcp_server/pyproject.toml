@@ -1,0 +1,17 @@
+[project]
+name = "tcc-mcp"
+version = "0.1.0"
+description = "MCP server for academic writing assistance (ABNT)"
+requires-python = ">=3.8"
+dependencies = [
+    "fastmcp>=0.4.0",
+    "bibtexparser>=1.4.0",
+    "requests>=2.31.0",
+    "pypdf>=3.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
