@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "tcc-mcp": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--with", "fastmcp",
+        "--with", "bibtexparser",
+        "--with", "requests",
+        "--with", "pypdf",
+        "python", "-m", "mcp_server.server"
+      ],
+      "env": {
+        "TCC_MCP_EMAIL": "seu.email@academico.com"
+      }
+    }
+  }
+}
