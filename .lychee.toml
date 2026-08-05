@@ -1,0 +1,53 @@
+max_concurrency = 10
+
+timeout = 30
+
+max_redirects = 5
+
+retry = true
+
+max_retries = 3
+
+accept = [200, 204, 301, 302]
+
+root_dir = './'
+
+include_fragments = true
+
+include_verbatim = false
+
+exclude = [
+  '^https://github\.com/.*/(issues|pull)/\d+',
+  '^mailto:',
+  '^file://',
+  'localhost',
+  '127\.0\.0\.1',
+  'http://localhost.*',
+]
+
+exclude_all_private = true
+
+include_mail = false
+
+user_agent = "lychee/0.14.0"
+
+exclude_domains = [
+  'example.com',
+  'example.org',
+]
+
+include = []
+
+scheme = "https"
+
+base = ""
+
+format = "detailed"
+
+color = true
+
+progress = true
+
+quiet = false
+
+verbose = false

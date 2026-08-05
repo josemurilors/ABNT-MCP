@@ -1,7 +1,122 @@
+# ============================================
+# Python
+# ============================================
 .venv/
 __pycache__/
 *.pyc
-.pytest_cache/
+*.pyo
+*.pyd
+.Python
 *.egg-info/
+*.egg
 dist/
 build/
+.eggs/
+
+# ============================================
+# Testing & Coverage
+# ============================================
+.pytest_cache/
+coverage/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+
+# ============================================
+# Dependencies
+# ============================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# ============================================
+# Secrets & Environment Files (CRITICAL)
+# ============================================
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.pem
+*.key
+*.pfx
+*.p12
+*.cer
+credentials.json
+service-account*.json
+*-credentials.json
+secrets.json
+*.secret
+*.secrets
+
+# ============================================
+# AI tool local data (Cursor, Claude, Copilot)
+# ============================================
+.cursor/chats/
+.cursor/projects/
+.cursor/local.json
+.cursor/*.log
+
+.claude/local.json
+.claude/*.log
+.claude/projects/
+
+.windsurf/config.local.json
+.windsurf/logs/
+
+.vscode/settings.local.json
+.vscode/*.log
+.vscode/launch.json
+.vscode/debug.log
+
+.idea/workspace.xml
+.idea/usage.statistics.xml
+.idea/shelf/
+.idea/tasks.xml
+.idea/*.log
+
+# ============================================
+# Build outputs
+# ============================================
+.next/
+out/
+.cache/
+*.tsbuildinfo
+
+# ============================================
+# IDE and editor files
+# ============================================
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ============================================
+# Temporary files
+# ============================================
+*.tmp
+*.temp
+*.log
+
+# ============================================
+# Husky internal
+# ============================================
+.husky/_
+
+# ============================================
+# Misc
+# ============================================
+.eslintcache
+.stylelintcache
+
+# ============================================
+# OpenCode local data
+# ============================================
+.opencode/local.json
+.opencode/*.log

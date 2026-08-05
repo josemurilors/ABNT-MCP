@@ -1,0 +1,194 @@
+name: CI & Governance Checks
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-markdown:
+    name: Lint Markdown Files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Lint Markdown
+        uses: DavidAnson/markdownlint-cli2-action@v16
+        with:
+          globs: '**/*.md'
+
+  check-links:
+    name: Check Links
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Link Checker
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --fail --verbose --no-progress '*.md' '**/*.md'
+          fail: true
+
+  validate-commits:
+    name: Validate Commits
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate PR Title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            test
+            chore
+            ci
+            revert
+            security
+
+      - name: Validate Commit Messages
+        uses: wagoid/commitlint-github-action@v6
+        with:
+          configFile: .commitlintrc.json
+
+  parity-check:
+    name: Check README Structural Parity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read mode configuration
+        id: mode
+        run: |
+          MODE=$(jq -r '.mode' .github/mode.json)
+          PRIMARY=$(jq -r '.source_of_truth' .github/mode.json)
+          SECONDARY=$(jq -r '.translation_file' .github/mode.json)
+          echo "mode=$MODE" >> $GITHUB_OUTPUT
+          echo "primary=$PRIMARY" >> $GITHUB_OUTPUT
+          echo "secondary=$SECONDARY" >> $GITHUB_OUTPUT
+          echo "Mode: $MODE"
+          echo "Primary (source of truth): $PRIMARY"
+          echo "Secondary (translation): $SECONDARY"
+
+      - name: Check README Structural Parity
+        run: |
+          PRIMARY="${{ steps.mode.outputs.primary }}"
+          SECONDARY="${{ steps.mode.outputs.secondary }}"
+
+          echo "Checking structural parity between $PRIMARY and $SECONDARY..."
+
+          PRIMARY_STRUCT=$(grep -E '^#{1,3} ' "$PRIMARY" | sed 's/^#* //')
+          SECONDARY_STRUCT=$(grep -E '^#{1,3} ' "$SECONDARY" | sed 's/^#* //')
+
+          PRIMARY_COUNT=$(echo "$PRIMARY_STRUCT" | wc -l)
+          SECONDARY_COUNT=$(echo "$SECONDARY_STRUCT" | wc -l)
+
+          echo "Primary ($PRIMARY) headings: $PRIMARY_COUNT"
+          echo "Secondary ($SECONDARY) headings: $SECONDARY_COUNT"
+
+          if [ "$PRIMARY_STRUCT" != "$SECONDARY_STRUCT" ]; then
+            echo ""
+            echo "Error: Heading hierarchy structure mismatch!"
+            echo "   Primary: $PRIMARY"
+            echo "   Secondary: $SECONDARY"
+            echo ""
+            echo "--- Primary Headings ---"
+            echo "$PRIMARY_STRUCT"
+            echo ""
+            echo "--- Secondary Headings ---"
+            echo "$SECONDARY_STRUCT"
+            echo ""
+            echo "Please ensure both README files have identical heading structure."
+            exit 1
+          fi
+
+          echo "Structural parity check passed: $PRIMARY_COUNT headings match in both versions"
+
+  secret-scan:
+    name: Secret Detection (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+        with:
+          config-path: .gitleaks.toml
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for .env files
+        run: |
+          echo "Checking for accidentally committed .env files..."
+          ENV_FILES=$(find . -name ".env" -o -name ".env.*" | grep -v ".env.example" | grep -v ".env.sample" || true)
+          if [ -n "$ENV_FILES" ]; then
+            echo "CRITICAL: Found .env files that should not be committed:"
+            echo "$ENV_FILES"
+            echo ""
+            echo "Remove these files and add them to .gitignore immediately!"
+            exit 1
+          fi
+          echo "No .env files found"
+
+      - name: Check for private keys
+        run: |
+          echo "Checking for private key files..."
+          KEY_FILES=$(find . -name "*.pem" -o -name "*.key" -o -name "*.pfx" -o -name "*.p12" | grep -v node_modules | grep -v .venv || true)
+          if [ -n "$KEY_FILES" ]; then
+            echo "CRITICAL: Found private key files:"
+            echo "$KEY_FILES"
+            echo ""
+            echo "Remove these files and add them to .gitignore immediately!"
+            exit 1
+          fi
+          echo "No private key files found"
+
+      - name: Scan for hardcoded secrets in code
+        run: |
+          echo "Scanning for hardcoded secrets in source files..."
+
+          PATTERNS=(
+            'sk-proj-[a-zA-Z0-9]{48}'
+            'sk-ant-[a-zA-Z0-9]{32}'
+            'ghp_[a-zA-Z0-9]{36}'
+            'AKIA[0-9A-Z]{16}'
+            'sk_live_[a-zA-Z0-9]{24}'
+          )
+
+          FOUND=0
+          for pattern in "${PATTERNS[@]}"; do
+            if grep -rE "$pattern" --include="*.py" --include="*.sh" --include="*.yml" --include="*.yaml" --include="*.toml" . 2>/dev/null | grep -v .venv | grep -v ".example"; then
+              echo "Potential secret found matching pattern: $pattern"
+              FOUND=1
+            fi
+          done
+
+          if [ $FOUND -eq 1 ]; then
+            echo ""
+            echo "CRITICAL: Hardcoded secrets detected in source files!"
+            echo "Replace with environment variables immediately."
+            exit 1
+          fi
+          echo "No hardcoded secrets found"
